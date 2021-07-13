@@ -40,4 +40,3 @@ if(not ai.access_token):
 cl_id = ai.get_cluster_id()
 print("We found cluster " + cl_id)
 
-
