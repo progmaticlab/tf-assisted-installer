@@ -46,15 +46,36 @@ function post_manifests_to_ai(){
     post_manifests_folder_to_ai ${cluster_id} ${token} "manifests"
 }
 
+function post_generate_iso(){
+    local cluster_id=$1
+    local token=$2
+
+    ​POST /clusters​/${cluster_id}​/downloads​/image
+
+    Params:
+    {
+    "ssh_public_key": "$(cat ~/.ssh/id_rsa.pub)",
+    "image_type": "full-iso"
+    }
+}
+
+function get_cluster_iso(){
+    local cluster_id=$1
+    local token=$2
+
+    GET /clusters/${cluster_id}/downloads/image
+}
+
 # Prepare openshift manifests
 if [[ ! -d $OPENSHIFT_REPO ]]; then
     git clone https://github.com/tungstenfabric/tf-openshift.git $OPENSHIFT_REPO
 fi
 
-# Upload manifests
+# Get auth token
 access_token=$(get_access_token)
 clusters=$(get_clusters "${access_token}")
 
+# Find cluster
 clusters_len=$(echo "${clusters}" | jq length)
 for i in  $(seq 1 $clusters_len); do
     echo No $i
@@ -62,10 +83,20 @@ for i in  $(seq 1 $clusters_len); do
     if [[ "$cn" == "$cluster_name" ]]; then
         echo "INFO: We have found cluster $cn"
         cluster_id=$(echo "${clusters}" | jq -r ".[$((i-1))].id")
-        post_manifests_to_ai $cluster_id $access_token
     fi
 done
 
+if [[ -z ${cluster_id} ]]; then
+    echo "ERROR: unable to find cluster"
+    exit 1
+fi
+
+# Upload tf-openshift manifests to assisted installer
+post_manifests_to_ai $cluster_id $access_token
+
+# Generate and download ISO from assisted installer
+post_generate_iso $cluster_id $access_token
+get_cluster_iso $cluster_id $access_token > ${WORKSPACE}/cluster.iso
 
 # Run machines
 #for i in $(seq 0 2); do
