@@ -50,20 +50,16 @@ function post_generate_iso(){
     local cluster_id=$1
     local token=$2
 
-    ​POST /clusters​/${cluster_id}​/downloads​/image
-
-    Params:
-    {
-    "ssh_public_key": "$(cat ~/.ssh/id_rsa.pub)",
-    "image_type": "full-iso"
-    }
+    local url="${api_base}/clusters​/${cluster_id}​/downloads​/image"
+    curl -H "Accept: application/json" -H "Content-type: application/json" -X POST -H "Authorization: Bearer ${token}" -d "{\"ssh_public_key\":\"$(cat ~/.ssh/id_rsa.pub)\",\"image_type\":\"full-iso\"}" ${url}
 }
 
 function get_cluster_iso(){
     local cluster_id=$1
     local token=$2
 
-    GET /clusters/${cluster_id}/downloads/image
+    local res=$(curl -s -H 'Accept: application/json' -H "Authorization: Bearer ${token}" ${api_base}/clusters/${cluster_id}/downloads/image)
+    echo $res
 }
 
 # Prepare openshift manifests
