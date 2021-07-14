@@ -26,16 +26,24 @@ function get_clusters(){
     echo $res
 }
 
+function post_manifests_folder_to_ai(){
+    local clister_id=$1
+    local token=$2
+    local folder=$3
+
+    # Itarate over all manifests
+    for file in $(ls $OPENSHIFT_REPO/deploy/${folder}); do
+        local content=$(cat $OPENSHIFT_REPO/deploy/${folder}/${file} | base64)
+        local url="${api_base}clusters/${cluster_id}/manifests"
+        curl -H "Accept: application/json" -H "Content-type: application/json" -X POST -H "Authorization: Bearer ${token}" -d "{\"folder\":\"${folder}\",\"file_name\":\"${file}\",\"content\":\"${content}\"}" ${url}
+    done
+}
+
 function post_manifests_to_ai(){
     local clister_id=$1
     local token=$2
-    # Itarate over all manifests
-
-    for file in $(ls $OPENSHIFT_REPO/deploy/openshift); do
-        local content=$(cat $OPENSHIFT_REPO/deploy/openshift/${file} | base64)
-        local url="${api_base}clusters/${cluster_id}/manifests"
-        curl -H "Accept: application/json" -H "Content-type: application/json" -X POST -H "Authorization: Bearer ${token}" -d "{\"folder\":\"openshift\",\"file_name\":\"${file}\",\"content\":\"${content}\"}" ${url}
-    done
+    post_manifests_folder_to_ai ${cluster_id} ${token} "openshift"
+    post_manifests_folder_to_ai ${cluster_id} ${token} "manifests"
 }
 
 # Prepare openshift manifests
