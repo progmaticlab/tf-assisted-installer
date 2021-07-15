@@ -50,16 +50,9 @@ function post_generate_iso(){
     local cluster_id=$1
     local token=$2
 
-    local url="${api_base}/clusters​/${cluster_id}​/downloads​/image"
-    curl -H "Accept: application/json" -H "Content-type: application/json" -X POST -H "Authorization: Bearer ${token}" -d "{\"ssh_public_key\":\"$(cat ~/.ssh/id_rsa.pub)\",\"image_type\":\"full-iso\"}" ${url}
-}
-
-function get_cluster_iso(){
-    local cluster_id=$1
-    local token=$2
-
-    local res=$(curl -s -H 'Accept: application/json' -H "Authorization: Bearer ${token}" ${api_base}/clusters/${cluster_id}/downloads/image)
-    echo $res
+    local url="${api_base}clusters/${cluster_id}/downloads/image"
+    res=$(curl -s -H "Accept: application/json" -H "Content-type: application/json" -X POST -H "Authorization: Bearer ${token}" -d "{\"ssh_public_key\":\"$(cat ~/.ssh/id_rsa.pub)\",\"image_type\":\"full-iso\"}" ${url} | jq -r '.image_info.download_url')
+    echo "$res"
 }
 
 # Prepare openshift manifests
@@ -91,10 +84,14 @@ fi
 post_manifests_to_ai $cluster_id $access_token
 
 # Generate and download ISO from assisted installer
-post_generate_iso $cluster_id $access_token
-get_cluster_iso $cluster_id $access_token > ${WORKSPACE}/cluster.iso
+download_url=$(post_generate_iso $cluster_id $access_token)
+curl --output cluster.iso ${download_url}
 
 # Run machines
 #for i in $(seq 0 2); do
 #  sudo virt-install --name oc-master${i} --network network=default,model=virtio  --memory 16384 --vcpus 4 --disk size=120 --cdrom /home/ubuntu/assisted_installer/discovery_image_test9.iso --os-variant rhel7 &
 #done
+
+# TODO Wait for machines up
+
+# Setup hostnames for all machines
